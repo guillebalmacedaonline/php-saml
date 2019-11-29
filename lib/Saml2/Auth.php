@@ -251,50 +251,53 @@ class OneLogin_Saml2_Auth
     public function processSLO($keepLocalSession = false, $requestId = null, $retrieveParametersFromServer = false, $cbDeleteSession = null, $stay = false)
     {
         $this->_errors = array();
-        $this->_errorReason = null;
-        if (isset($_GET['SAMLResponse'])) {
-            $logoutResponse = new OneLogin_Saml2_LogoutResponse($this->_settings, $_GET['SAMLResponse']);
+        $this->_lastError = $this->_lastErrorException = null;
+        if (isset($_POST['SAMLResponse'])) {
+            $logoutResponse = new LogoutResponse($this->_settings, $_POST['SAMLResponse']);
             $this->_lastResponse = $logoutResponse->getXML();
             if (!$logoutResponse->isValid($requestId, $retrieveParametersFromServer)) {
                 $this->_errors[] = 'invalid_logout_response';
-                $this->_errorReason = $logoutResponse->getError();
-            } else if ($logoutResponse->getStatus() !== OneLogin_Saml2_Constants::STATUS_SUCCESS) {
+                $this->_lastErrorException = $logoutResponse->getErrorException();
+                $this->_lastError = $logoutResponse->getError();
+
+            } else if ($logoutResponse->getStatus() !== Constants::STATUS_SUCCESS) {
                 $this->_errors[] = 'logout_not_success';
             } else {
                 $this->_lastMessageId = $logoutResponse->id;
                 if (!$keepLocalSession) {
                     if ($cbDeleteSession === null) {
-                        OneLogin_Saml2_Utils::deleteLocalSession();
+                        Utils::deleteLocalSession();
                     } else {
                         call_user_func($cbDeleteSession);
                     }
                 }
             }
-        } else if (isset($_GET['SAMLRequest'])) {
-            $logoutRequest = new OneLogin_Saml2_LogoutRequest($this->_settings, $_GET['SAMLRequest']);
+        } else if (isset($_POST['SAMLRequest'])) {
+            $logoutRequest = new LogoutRequest($this->_settings, $_POST['SAMLRequest']);
             $this->_lastRequest = $logoutRequest->getXML();
             if (!$logoutRequest->isValid($retrieveParametersFromServer)) {
                 $this->_errors[] = 'invalid_logout_request';
-                $this->_errorReason = $logoutRequest->getError();
+                $this->_lastErrorException = $logoutRequest->getErrorException();
+                $this->_lastError = $logoutRequest->getError();
             } else {
                 if (!$keepLocalSession) {
                     if ($cbDeleteSession === null) {
-                        OneLogin_Saml2_Utils::deleteLocalSession();
+                        Utils::deleteLocalSession();
                     } else {
                         call_user_func($cbDeleteSession);
                     }
                 }
                 $inResponseTo = $logoutRequest->id;
                 $this->_lastMessageId = $logoutRequest->id;
-                $responseBuilder = new OneLogin_Saml2_LogoutResponse($this->_settings);
+                $responseBuilder = new LogoutResponse($this->_settings);
                 $responseBuilder->build($inResponseTo);
                 $this->_lastResponse = $responseBuilder->getXML();
 
                 $logoutResponse = $responseBuilder->getResponse();
 
                 $parameters = array('SAMLResponse' => $logoutResponse);
-                if (isset($_GET['RelayState'])) {
-                    $parameters['RelayState'] = $_GET['RelayState'];
+                if (isset($_POST['RelayState'])) {
+                    $parameters['RelayState'] = $_POST['RelayState'];
                 }
 
                 $security = $this->_settings->getSecurityData();
@@ -308,9 +311,9 @@ class OneLogin_Saml2_Auth
             }
         } else {
             $this->_errors[] = 'invalid_binding';
-            throw new OneLogin_Saml2_Error(
+            throw new Error(
                 'SAML LogoutRequest/LogoutResponse not found. Only supported HTTP_REDIRECT Binding',
-                OneLogin_Saml2_Error::SAML_LOGOUTMESSAGE_NOT_FOUND
+                Error::SAML_LOGOUTMESSAGE_NOT_FOUND
             );
         }
     }
