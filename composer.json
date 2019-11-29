@@ -14,7 +14,7 @@
     "support": {
         "email": "sixto.garcia@onelogin.com",
         "issues": "https://github.com/onelogin/php-saml/issues",
-        "source": "https://github.com/onelogin/php-saml/"
+        "source": "https://github.com/guillebalmacedaonline/php-saml/"
     },
     "require": {
         "php": ">=5.3.2",
